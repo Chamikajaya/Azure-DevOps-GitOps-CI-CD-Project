@@ -13,6 +13,7 @@ variables:
   containerRegistry: "votingappregistry.azurecr.io"
   dockerfilePath: "$(Build.SourcesDirectory)/worker/Dockerfile"
   tag: "$(Build.BuildId)"
+  serviceName: "worker"
 
 # Running the pipeline on self hosted VM
 pool:
@@ -47,3 +48,18 @@ stages:
               repository: "$(imageRepository)"
               command: "push"
               tags: "$(tag)"
+
+  - stage: UpdateManifest
+    displayName: Update K8s Manifest
+    jobs:
+      - job: Update
+        displayName: Update Manifest for GitOps
+        steps:
+          - checkout: self
+            persistCredentials: true
+          - task: Bash@3
+            displayName: "Update K8s Manifest"
+            inputs:
+              filePath: "$(Build.SourcesDirectory)/scripts/update-manifest.sh"
+              arguments: "$(serviceName) $(tag) $(containerRegistry)"
+              workingDirectory: "$(Build.SourcesDirectory)"

@@ -2,6 +2,8 @@ trigger:
   paths:
     include:
       - result/**
+    exclude:
+      - k8s-specifications/**
 
 resources:
   - repo: self
@@ -13,6 +15,7 @@ variables:
   containerRegistry: "votingappregistry.azurecr.io"
   dockerfilePath: "$(Build.SourcesDirectory)/result/Dockerfile"
   tag: "$(Build.BuildId)"
+  serviceName: "result"
 
   # # Agent VM image name
   # vmImageName: 'ubuntu-latest'
@@ -50,3 +53,18 @@ stages:
               repository: "$(imageRepository)"
               command: "push"
               tags: "$(tag)"
+
+  - stage: UpdateManifest
+    displayName: Update K8s Manifest
+    jobs:
+      - job: Update
+        displayName: Update Manifest for GitOps
+        steps:
+          - checkout: self
+            persistCredentials: true
+          - task: Bash@3
+            displayName: "Update K8s Manifest"
+            inputs:
+              filePath: "$(Build.SourcesDirectory)/scripts/update-manifest.sh"
+              arguments: "$(serviceName) $(tag) $(containerRegistry)"
+              workingDirectory: "$(Build.SourcesDirectory)"
